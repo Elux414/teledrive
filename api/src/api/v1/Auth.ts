@@ -16,7 +16,6 @@ import { TGSessionAuth } from '../middlewares/TGSessionAuth'
 
 @Endpoint.API()
 export class Auth {
-
   @Endpoint.POST({ middlewares: [TGClient] })
   public async sendCode(req: Request, res: Response): Promise<any> {
     const { phoneNumber } = req.body
@@ -25,15 +24,20 @@ export class Auth {
     }
 
     await req.tg.connect()
-    const { phoneCodeHash, timeout } = await req.tg.invoke(new Api.auth.SendCode({
-      ...TG_CREDS,
+    const result = await req.tg.invoke(new Api.auth.SendCode({
       phoneNumber,
+      apiId: TG_CREDS.apiId,
+      apiHash: TG_CREDS.apiHash,
       settings: new Api.CodeSettings({
         allowFlashcall: true,
-        currentNumber: true,
         allowAppHash: true,
+        currentNumber: true,
+        allowMissedCall: true,
       })
     }))
+    // GramJS возвращает объект типа auth.SentCode
+    const { phoneCodeHash, timeout } = result
+
     const session = req.tg.session.save()
     const accessToken = sign({ session }, API_JWT_SECRET, { expiresIn: '3h' })
     return res.cookie('authorization', `Bearer ${accessToken}`)
@@ -48,8 +52,9 @@ export class Auth {
     }
 
     await req.tg.connect()
-    const { phoneCodeHash: newPhoneCodeHash, timeout } = await req.tg.invoke(new Api.auth.ResendCode({
-      phoneNumber, phoneCodeHash }))
+    const result = await req.tg.invoke(new Api.auth.ResendCode({ phoneNumber, phoneCodeHash }))
+    const { phoneCodeHash: newPhoneCodeHash, timeout } = result
+
     const session = req.tg.session.save()
     const accessToken = sign({ session }, API_JWT_SECRET, { expiresIn: '3h' })
     return res.cookie('authorization', `Bearer ${accessToken}`)
@@ -67,15 +72,21 @@ export class Auth {
     }
 
     await req.tg.connect()
-    let signIn: any
+    let signInResult: any
+
     if (password) {
-      const data = await req.tg.invoke(new Api.account.GetPassword())
-      data.newAlgo['salt1'] = Buffer.concat([data.newAlgo['salt1'], generateRandomBytes(32)])
-      signIn = await req.tg.invoke(new Api.auth.CheckPassword({ password: await computeCheck(data, password) }))
+      const pwData = await req.tg.invoke(new Api.account.GetPassword())
+      const passwordSrp = await computeCheck(pwData, password)
+      signInResult = await req.tg.invoke(new Api.auth.CheckPassword({ password: passwordSrp }))
     } else {
-      signIn = await req.tg.invoke(new Api.auth.SignIn({ phoneNumber, phoneCode, phoneCodeHash }))
+      signInResult = await req.tg.invoke(new Api.auth.SignIn({
+        phoneNumber,
+        phoneCodeHash,
+        phoneCode
+      }))
     }
-    const userAuth = signIn['user']
+
+    const userAuth = signInResult.user
     if (!userAuth) {
       throw { status: 400, body: { error: 'User not found/authorized' } }
     }
@@ -117,10 +128,11 @@ export class Auth {
       expiredAfter: Date.now() + COOKIE_AGE
     }
 
+    // Cookie + ответ
     res
       .cookie('authorization', `Bearer ${auth.accessToken}`, { maxAge: COOKIE_AGE, expires: new Date(auth.expiredAfter) })
       .cookie('refreshToken', auth.refreshToken, { maxAge: 3.154e+10, expires: new Date(Date.now() + 3.154e+10) })
-      .send({ user, ...auth })
+      .send({ user: user!, ...auth })
 
     // sync all shared files in background, if any
     prisma.files.findMany({
