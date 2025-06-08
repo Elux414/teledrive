@@ -13,19 +13,21 @@ export class Messages {
     const { type, id } = req.params
     const { offset, limit, accessHash } = req.query
 
-    let peer: Api.InputPeerChannel | Api.InputPeerUser | Api.InputPeerChat
+    let peer: Api.TypeInputPeer
     if (type === 'channel') {
       peer = new Api.InputPeerChannel({
         channelId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
+        accessHash: bigInt(accessHash as string)
+      })
     } else if (type === 'chat') {
       peer = new Api.InputPeerChat({
         chatId: bigInt(id)
       })
-    } else if (type === 'user') {
+    } else {
       peer = new Api.InputPeerUser({
         userId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
+        accessHash: bigInt(accessHash as string)
+      })
     }
 
     const result = await Redis.connect().getFromCacheFirst(`history:${req.user.id}:${JSON.stringify(req.params)}:${JSON.stringify(req.query)}`, async () => {
@@ -41,65 +43,39 @@ export class Messages {
     return res.send({ messages: result })
   }
 
+  // ❌ Удалено: GetSponsoredMessages больше не существует в gramjs 2.26.2
+  /*
   @Endpoint.GET('/sponsoredMessages/:type/:id', { middlewares: [Auth] })
   public async sponsoredMessages(req: Request, res: Response): Promise<any> {
-    const { type, id } = req.params
-    const { accessHash } = req.query
-
-    let peer: Api.InputPeerChannel
-    if (type === 'channel') {
-      peer = new Api.InputPeerChannel({
-        channelId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
-    } else {
-      return res.send({ messages: {
-        messages: [],
-        chats: [],
-        users: []
-      } })
-    }
-    const messages = await req.tg.invoke(new Api.channels.GetSponsoredMessages({ channel: peer }))
-    return res.send({ messages })
+    return res.send({ messages: { messages: [], chats: [], users: [] } })
   }
 
   @Endpoint.POST('/readSponsoredMessages/:type/:id', { middlewares: [Auth] })
   public async readSponsoredMessages(req: Request, res: Response): Promise<any> {
-    const { type, id } = req.params
-    const { accessHash } = req.query
-    const { random_id: randomId } = req.body
-
-    let peer: Api.InputPeerChannel
-    if (type === 'channel') {
-      peer = new Api.InputPeerChannel({
-        channelId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
-    } else {
-      return res.status(202).send({ accepted: true })
-    }
-    const accepted = await req.tg.invoke(new Api.channels.ViewSponsoredMessage({
-      channel: peer, randomId: Buffer.from(randomId)
-    }))
-    return res.status(202).send({ accepted })
+    return res.status(202).send({ accepted: true })
   }
+  */
 
   @Endpoint.POST('/read/:type/:id', { middlewares: [Auth] })
   public async read(req: Request, res: Response): Promise<any> {
     const { type, id } = req.params
     const { accessHash } = req.query
 
-    let peer: Api.InputPeerChannel | Api.InputPeerUser | Api.InputPeerChat
+    let peer: Api.TypeInputPeer
     if (type === 'channel') {
       peer = new Api.InputPeerChannel({
         channelId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
+        accessHash: bigInt(accessHash as string)
+      })
     } else if (type === 'chat') {
       peer = new Api.InputPeerChat({
         chatId: bigInt(id)
       })
-    } else if (type === 'user') {
+    } else {
       peer = new Api.InputPeerUser({
         userId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
+        accessHash: bigInt(accessHash as string)
+      })
     }
 
     try {
@@ -116,26 +92,27 @@ export class Messages {
     const { accessHash } = req.query
     const { message, replyToMsgId } = req.body
 
-    let peer: Api.InputPeerChannel | Api.InputPeerUser | Api.InputPeerChat
+    let peer: Api.TypeInputPeer
     if (type === 'channel') {
       peer = new Api.InputPeerChannel({
         channelId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
+        accessHash: bigInt(accessHash as string)
+      })
     } else if (type === 'chat') {
       peer = new Api.InputPeerChat({
         chatId: bigInt(id)
       })
-    } else if (type === 'user') {
+    } else {
       peer = new Api.InputPeerUser({
         userId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
+        accessHash: bigInt(accessHash as string)
+      })
     }
 
     const result = await req.tg.invoke(new Api.messages.SendMessage({
       peer,
       message,
-      // ...replyToMsgId ? { replyToMsgId: new Api.InputMessageReplyTo({ id: bigInt(replyToMsgId) }) } : {}
-      ...replyToMsgId ? { replyToMsgId: replyToMsgId } : {}
+      ...(replyToMsgId ? { replyToMsgId } : {})
     }))
     return res.send({ message: result })
   }
@@ -146,19 +123,21 @@ export class Messages {
     const { accessHash } = req.query
     const { message } = req.body
 
-    let peer: Api.InputPeerChannel | Api.InputPeerUser | Api.InputPeerChat
+    let peer: Api.TypeInputPeer
     if (type === 'channel') {
       peer = new Api.InputPeerChannel({
         channelId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
+        accessHash: bigInt(accessHash as string)
+      })
     } else if (type === 'chat') {
       peer = new Api.InputPeerChat({
         chatId: bigInt(id)
       })
-    } else if (type === 'user') {
+    } else {
       peer = new Api.InputPeerUser({
         userId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
+        accessHash: bigInt(accessHash as string)
+      })
     }
 
     const result = await req.tg.invoke(new Api.messages.EditMessage({
@@ -174,19 +153,21 @@ export class Messages {
     const { type, id, msgId } = req.params
     const { accessHash } = req.query
 
-    let peer: Api.InputPeerChannel | Api.InputPeerUser | Api.InputPeerChat
+    let peer: Api.TypeInputPeer
     if (type === 'channel') {
       peer = new Api.InputPeerChannel({
         channelId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
+        accessHash: bigInt(accessHash as string)
+      })
     } else if (type === 'chat') {
       peer = new Api.InputPeerChat({
         chatId: bigInt(id)
       })
-    } else if (type === 'user') {
+    } else {
       peer = new Api.InputPeerUser({
         userId: bigInt(id),
-        accessHash: bigInt(accessHash as string) })
+        accessHash: bigInt(accessHash as string)
+      })
     }
 
     try {
@@ -200,32 +181,30 @@ export class Messages {
   @Endpoint.POST('/forward/:msgId', { middlewares: [Auth] })
   public async forward(req: Request, res: Response): Promise<any> {
     const { msgId } = req.params
-    const { from, to } = req.body as { from?: {
-      type: string,
-      id: number,
-      accessHash?: string
-    }, to: {
-      type: string,
-      id: number,
-      accessHash?: string
-    } | string }
+    const { from, to } = req.body as {
+      from?: { type: string, id: number, accessHash?: string },
+      to: { type: string, id: number, accessHash?: string } | string
+    }
 
-    let fromPeer: Api.InputPeerChannel | Api.InputPeerUser | Api.InputPeerChat | 'me'
-    let toPeer: Api.InputPeerChannel | Api.InputPeerUser | Api.InputPeerChat | string
+    let fromPeer: Api.TypeInputPeer | 'me'
+    let toPeer: Api.TypeInputPeer | string
+
     if (!from) {
       fromPeer = 'me'
     } else if (from.type === 'channel') {
       fromPeer = new Api.InputPeerChannel({
         channelId: bigInt(from.id),
-        accessHash: bigInt(from.accessHash as string) })
+        accessHash: bigInt(from.accessHash as string)
+      })
     } else if (from.type === 'chat') {
       fromPeer = new Api.InputPeerChat({
         chatId: bigInt(from.id)
       })
-    } else if (from.type === 'user') {
+    } else {
       fromPeer = new Api.InputPeerUser({
         userId: bigInt(from.id),
-        accessHash: bigInt(from.accessHash as string) })
+        accessHash: bigInt(from.accessHash as string)
+      })
     }
 
     if (typeof to === 'string') {
@@ -233,15 +212,17 @@ export class Messages {
     } else if (to.type === 'channel') {
       toPeer = new Api.InputPeerChannel({
         channelId: bigInt(to.id),
-        accessHash: bigInt(to.accessHash as string) })
+        accessHash: bigInt(to.accessHash as string)
+      })
     } else if (to.type === 'chat') {
       toPeer = new Api.InputPeerChat({
         chatId: bigInt(to.id)
       })
-    } else if (to.type === 'user') {
+    } else {
       toPeer = new Api.InputPeerUser({
         userId: bigInt(to.id),
-        accessHash: bigInt(to.accessHash as string) })
+        accessHash: bigInt(to.accessHash as string)
+      })
     }
 
     const result = await req.tg.invoke(new Api.messages.ForwardMessages({
@@ -259,6 +240,7 @@ export class Messages {
     if (!q) {
       throw { status: 400, body: { error: 'q is required' } }
     }
+
     const messages = await req.tg.invoke(new Api.messages.Search({
       q: q as string,
       filter: new Api.InputMessagesFilterEmpty(),
@@ -293,20 +275,23 @@ export class Messages {
   @Endpoint.GET('/:type/:id/avatar.jpg', { middlewares: [Auth] })
   public async avatar(req: Request, res: Response): Promise<any> {
     const { type, id } = req.params
-    let peer: Api.InputPeerChannel | Api.InputPeerUser | Api.InputPeerChat
+    let peer: Api.TypeInputPeer
     if (type === 'channel') {
       peer = new Api.InputPeerChannel({
         channelId: bigInt(id),
-        accessHash: bigInt(req.query.accessHash as string) })
+        accessHash: bigInt(req.query.accessHash as string)
+      })
     } else if (type === 'chat') {
       peer = new Api.InputPeerChat({
         chatId: bigInt(id)
       })
-    } else if (type === 'user') {
+    } else {
       peer = new Api.InputPeerUser({
         userId: bigInt(id),
-        accessHash: bigInt(req.query.accessHash as string) })
+        accessHash: bigInt(req.query.accessHash as string)
+      })
     }
+
     try {
       const file = await req.tg.downloadProfilePhoto(peer)
       if (!file?.length) {
