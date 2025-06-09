@@ -112,7 +112,7 @@ export class Messages {
     const result = await req.tg.invoke(new Api.messages.SendMessage({
       peer,
       message,
-      ...(replyToMsgId ? { replyToMsgId } : {})
+      ...(replyToMsgId ? { replyToMsgId } : {}) // eslint-disable-line @typescript-eslint/no-extra-parens
     }))
     return res.send({ message: result })
   }
