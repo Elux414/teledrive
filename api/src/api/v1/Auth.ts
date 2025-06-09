@@ -25,16 +25,18 @@ export class Auth {
 
     await req.tg.connect()
     const result = await req.tg.invoke(new Api.auth.SendCode({
-      phoneNumber,
-      apiId: TG_CREDS.apiId,
-      apiHash: TG_CREDS.apiHash,
-      settings: new Api.CodeSettings({
-        allowFlashcall: true,
-        allowAppHash: true,
-        currentNumber: true,
-        allowMissedCall: true,
-      })
-    }))
+  phoneNumber,
+  apiId: TG_CREDS.apiId,
+  apiHash: TG_CREDS.apiHash,
+  settings: new Api.CodeSettings({
+    allowFlashcall: true,
+    allowAppHash: true,
+    currentNumber: true,
+    allowMissedCall: true,
+  })
+})) as Api.auth.SentCode;
+
+const { phoneCodeHash, timeout } = result;
     // GramJS возвращает объект типа auth.SentCode
     const { phoneCodeHash, timeout } = result
 
@@ -52,8 +54,13 @@ export class Auth {
     }
 
     await req.tg.connect()
-    const result = await req.tg.invoke(new Api.auth.ResendCode({ phoneNumber, phoneCodeHash }))
-    const { phoneCodeHash: newPhoneCodeHash, timeout } = result
+    const result = await req.tg.invoke(new Api.auth.ResendCode({
+  phoneNumber,
+  phoneCodeHash
+})) as Api.auth.SentCode;
+
+const { phoneCodeHash: newPhoneCodeHash, timeout } = result;
+
 
     const session = req.tg.session.save()
     const accessToken = sign({ session }, API_JWT_SECRET, { expiresIn: '3h' })
