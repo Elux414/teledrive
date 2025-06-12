@@ -280,11 +280,13 @@ export class Auth {
   }
 }
 
-initialize export login token to be a param for URL tg://login?token={{token}}
+/**
+   * Initialize export login token to be a param for URL tg://login?token={{token}}
    * @param req
    * @param res
    * @returns
    */
+
   @Endpoint.GET({ middlewares: [TGClient] })
   public async qrCode(req: Request, res: Response): Promise<any> {
     await req.tg.connect()
