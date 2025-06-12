@@ -9,7 +9,13 @@ import { computeCheck } from 'telegram/Password'
 import { StringSession } from 'telegram/sessions'
 import { prisma } from '../../model'
 import { Redis } from '../../service/Cache'
-import { API_JWT_SECRET, CONNECTION_RETRIES, COOKIE_AGE, FILES_JWT_SECRET, TG_CREDS } from '../../utils/Constant'
+import {
+  API_JWT_SECRET,
+  CONNECTION_RETRIES,
+  COOKIE_AGE,
+  FILES_JWT_SECRET,
+  TG_CREDS,
+} from '../../utils/Constant'
 import { Endpoint } from '../base/Endpoint'
 import { TGClient } from '../middlewares/TGClient'
 import { TGSessionAuth } from '../middlewares/TGSessionAuth'
@@ -24,25 +30,26 @@ export class Auth {
     }
 
     await req.tg.connect()
-    const result = await req.tg.invoke(new Api.auth.SendCode({
-  phoneNumber,
-  apiId: TG_CREDS.apiId,
-  apiHash: TG_CREDS.apiHash,
-  settings: new Api.CodeSettings({
-    allowFlashcall: true,
-    allowAppHash: true,
-    currentNumber: true,
-    allowMissedCall: true,
-  })
-})) as Api.auth.SentCode;
+    const result = (await req.tg.invoke(
+      new Api.auth.SendCode({
+        phoneNumber,
+        apiId: TG_CREDS.apiId,
+        apiHash: TG_CREDS.apiHash,
+        settings: new Api.CodeSettings({
+          allowFlashcall: true,
+          allowAppHash: true,
+          currentNumber: true,
+          allowMissedCall: true,
+        }),
+      })
+    )) as Api.auth.SentCode
 
-const { phoneCodeHash, timeout } = result;
-    // GramJS возвращает объект типа auth.SentCode
     const { phoneCodeHash, timeout } = result
 
     const session = req.tg.session.save()
     const accessToken = sign({ session }, API_JWT_SECRET, { expiresIn: '3h' })
-    return res.cookie('authorization', `Bearer ${accessToken}`)
+    return res
+      .cookie('authorization', `Bearer ${accessToken}`)
       .send({ phoneCodeHash, timeout, accessToken })
   }
 
@@ -50,32 +57,42 @@ const { phoneCodeHash, timeout } = result;
   public async reSendCode(req: Request, res: Response): Promise<any> {
     const { phoneNumber, phoneCodeHash } = req.body
     if (!phoneNumber || !phoneCodeHash) {
-      throw { status: 400, body: { error: 'Phone number and phone code hash are required' } }
+      throw {
+        status: 400,
+        body: { error: 'Phone number and phone code hash are required' },
+      }
     }
 
     await req.tg.connect()
-    const result = await req.tg.invoke(new Api.auth.ResendCode({
-  phoneNumber,
-  phoneCodeHash
-})) as Api.auth.SentCode;
+    const result = (await req.tg.invoke(
+      new Api.auth.ResendCode({
+        phoneNumber,
+        phoneCodeHash,
+      })
+    )) as Api.auth.SentCode
 
-const { phoneCodeHash: newPhoneCodeHash, timeout } = result;
-
-
+    const { phoneCodeHash: newPhoneCodeHash, timeout } = result
     const session = req.tg.session.save()
     const accessToken = sign({ session }, API_JWT_SECRET, { expiresIn: '3h' })
-    return res.cookie('authorization', `Bearer ${accessToken}`)
+    return res
+      .cookie('authorization', `Bearer ${accessToken}`)
       .send({ phoneCodeHash: newPhoneCodeHash, timeout, accessToken })
   }
 
   @Endpoint.POST({ middlewares: [TGSessionAuth] })
   public async login(req: Request, res: Response): Promise<any> {
-    const { phoneNumber, phoneCode, phoneCodeHash, password, invitationCode } = req.body
+    const { phoneNumber, phoneCode, phoneCodeHash, password, invitationCode } =
+      req.body
     if ((!phoneNumber || !phoneCode || !phoneCodeHash) && !password) {
       if (!password) {
         throw { status: 400, body: { error: 'Password is required' } }
       }
-      throw { status: 400, body: { error: 'Phone number, phone code, and phone code hash are required' } }
+      throw {
+        status: 400,
+        body: {
+          error: 'Phone number, phone code, and phone code hash are required',
+        },
+      }
     }
 
     await req.tg.connect()
@@ -84,13 +101,17 @@ const { phoneCodeHash: newPhoneCodeHash, timeout } = result;
     if (password) {
       const pwData = await req.tg.invoke(new Api.account.GetPassword())
       const passwordSrp = await computeCheck(pwData, password)
-      signInResult = await req.tg.invoke(new Api.auth.CheckPassword({ password: passwordSrp }))
+      signInResult = await req.tg.invoke(
+        new Api.auth.CheckPassword({ password: passwordSrp })
+      )
     } else {
-      signInResult = await req.tg.invoke(new Api.auth.SignIn({
-        phoneNumber,
-        phoneCodeHash,
-        phoneCode
-      }))
+      signInResult = await req.tg.invoke(
+        new Api.auth.SignIn({
+          phoneNumber,
+          phoneCodeHash,
+          phoneCode,
+        })
+      )
     }
 
     const userAuth = signInResult.user
@@ -98,9 +119,13 @@ const { phoneCodeHash: newPhoneCodeHash, timeout } = result;
       throw { status: 400, body: { error: 'User not found/authorized' } }
     }
 
-    let user = await prisma.users.findFirst({ where: { tg_id: userAuth.id.toString() } })
+    let user = await prisma.users.findFirst({
+      where: { tg_id: userAuth.id.toString() },
+    })
+
     const config = await prisma.config.findFirst()
     const username = userAuth.username || userAuth.phone || phoneNumber
+
     if (!user) {
       if (config?.disable_signup) {
         throw { status: 403, body: { error: 'Signup is disabled' } }
@@ -114,17 +139,20 @@ const { phoneCodeHash: newPhoneCodeHash, timeout } = result;
         data: {
           username,
           plan: 'premium',
-          name: `${userAuth.firstName || ''} ${userAuth.lastName || ''}`.trim() || username,
-          tg_id: userAuth.id.toString()
-        }
+          name:
+            `${userAuth.firstName || ''} ${userAuth.lastName || ''}`.trim() ||
+            username,
+          tg_id: userAuth.id.toString(),
+        },
       })
     }
+
     await prisma.users.update({
       data: {
         username,
-        plan: 'premium'
+        plan: 'premium',
       },
-      where: { id: user.id }
+      where: { id: user.id },
     })
 
     const session = req.tg.session.save()
@@ -132,32 +160,41 @@ const { phoneCodeHash: newPhoneCodeHash, timeout } = result;
       session,
       accessToken: sign({ session }, API_JWT_SECRET, { expiresIn: '15h' }),
       refreshToken: sign({ session }, API_JWT_SECRET, { expiresIn: '1y' }),
-      expiredAfter: Date.now() + COOKIE_AGE
+      expiredAfter: Date.now() + COOKIE_AGE,
     }
 
-    // Cookie + ответ
     res
-      .cookie('authorization', `Bearer ${auth.accessToken}`, { maxAge: COOKIE_AGE, expires: new Date(auth.expiredAfter) })
-      .cookie('refreshToken', auth.refreshToken, { maxAge: 3.154e+10, expires: new Date(Date.now() + 3.154e+10) })
-      .send({ user: user!, ...auth })
-
-    // sync all shared files in background, if any
-    prisma.files.findMany({
-      where: {
-        AND: [
-          { user_id: user.id },
-          {
-            NOT: { signed_key: null }
-          }
-        ]
-      }
-    }).then(files => files?.map(file => {
-      const signedKey = AES.encrypt(JSON.stringify({ file: { id: file.id }, session: req.tg.session.save() }), FILES_JWT_SECRET).toString()
-      prisma.files.update({
-        data: { signed_key: signedKey },
-        where: { id: file.id }
+      .cookie('authorization', `Bearer ${auth.accessToken}`, {
+        maxAge: COOKIE_AGE,
+        expires: new Date(auth.expiredAfter),
       })
-    }))
+      .cookie('refreshToken', auth.refreshToken, {
+        maxAge: 3.154e10,
+        expires: new Date(Date.now() + 3.154e10),
+      })
+      .send({ user, ...auth })
+
+    prisma.files
+      .findMany({
+        where: {
+          AND: [{ user_id: user.id }, { NOT: { signed_key: null } }],
+        },
+      })
+      .then((files) =>
+        files?.map((file) => {
+          const signedKey = AES.encrypt(
+            JSON.stringify({
+              file: { id: file.id },
+              session: req.tg.session.save(),
+            }),
+            FILES_JWT_SECRET
+          ).toString()
+          prisma.files.update({
+            data: { signed_key: signedKey },
+            where: { id: file.id },
+          })
+        })
+      )
   }
 
   @Endpoint.POST()
@@ -176,11 +213,20 @@ const { phoneCodeHash: newPhoneCodeHash, timeout } = result;
 
     try {
       const session = new StringSession(data.session)
-      req.tg = new TelegramClient(session, TG_CREDS.apiId, TG_CREDS.apiHash, {
-        connectionRetries: CONNECTION_RETRIES,
-        useWSS: false,
-        ...process.env.ENV === 'production' ? { baseLogger: new Logger(LogLevel.NONE) } : {}
-      })
+      req.tg = new TelegramClient(
+        session,
+        TG_CREDS.apiId,
+        TG_CREDS.apiHash,
+        Object.assign(
+          {
+            connectionRetries: CONNECTION_RETRIES,
+            useWSS: false,
+          },
+          process.env.ENV === 'production'
+            ? { baseLogger: new Logger(LogLevel.NONE) }
+            : {}
+        )
+      )
     } catch (error) {
       throw { status: 400, body: { error: 'Invalid key' } }
     }
@@ -188,16 +234,20 @@ const { phoneCodeHash: newPhoneCodeHash, timeout } = result;
     try {
       await req.tg.connect()
       const userAuth = await req.tg.getMe()
-      const user = await prisma.users.findFirst({ where: { tg_id: userAuth['id'].toString() } })
+      const user = await prisma.users.findFirst({
+        where: { tg_id: userAuth['id'].toString() },
+      })
       if (!user) {
         throw { status: 404, body: { error: 'User not found' } }
       }
+
       await prisma.users.update({
         data: {
-          username: req.userAuth?.username || req.userAuth?.phone || user.username,
-          plan: 'premium'
+          username:
+            req.userAuth?.username || req.userAuth?.phone || user.username,
+          plan: 'premium',
         },
-        where: { id: user.id }
+        where: { id: user.id },
       })
 
       const session = req.tg.session.save()
@@ -205,19 +255,32 @@ const { phoneCodeHash: newPhoneCodeHash, timeout } = result;
         session,
         accessToken: sign({ session }, API_JWT_SECRET, { expiresIn: '15h' }),
         refreshToken: sign({ session }, API_JWT_SECRET, { expiresIn: '100y' }),
-        expiredAfter: Date.now() + COOKIE_AGE
+        expiredAfter: Date.now() + COOKIE_AGE,
       }
+
       return res
-        .cookie('authorization', `Bearer ${auth.accessToken}`, { maxAge: COOKIE_AGE, expires: new Date(auth.expiredAfter) })
-        .cookie('refreshToken', auth.refreshToken, { maxAge: 3.154e+10, expires: new Date(Date.now() + 3.154e+10) })
+        .cookie('authorization', `Bearer ${auth.accessToken}`, {
+          maxAge: COOKIE_AGE,
+          expires: new Date(auth.expiredAfter),
+        })
+        .cookie('refreshToken', auth.refreshToken, {
+          maxAge: 3.154e10,
+          expires: new Date(Date.now() + 3.154e10),
+        })
         .send({ user, ...auth })
-    } catch (error) {
-      throw { status: 400, body: { error: error.message || 'Something error', details: serializeError(error) } }
+    } catch (error: any) {
+      throw {
+        status: 400,
+        body: {
+          error: error.message || 'Something error',
+          details: serializeError(error),
+        },
+      }
     }
   }
+}
 
-  /**
-   * Initialize export login token to be a param for URL tg://login?token={{token}}
+initialize export login token to be a param for URL tg://login?token={{token}}
    * @param req
    * @param res
    * @returns
