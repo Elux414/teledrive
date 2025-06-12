@@ -288,12 +288,15 @@ export class Auth {
    */
 
   @Endpoint.GET({ middlewares: [TGClient] })
-  public async qrCode(req: Request, res: Response): Promise<any> {
-    await req.tg.connect()
-    const data = await req.tg.invoke(new Api.auth.ExportLoginToken({
-      ...TG_CREDS,
-      exceptIds: []
-    }))
+public async qrCode(req: Request, res: Response): Promise<any> {
+  await req.tg.connect()
+  const data = await req.tg.invoke(new Api.auth.ExportLoginToken({
+    ...TG_CREDS,
+    exceptIds: [],
+  }))
+
+  return res.send(data)
+}
 
     const session = req.tg.session.save()
     const auth = {
