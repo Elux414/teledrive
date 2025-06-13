@@ -285,7 +285,6 @@ export class Auth {
    * @param res
    * @returns
    */
-  
   @Endpoint.GET({ middlewares: [TGClient] })
   public async qrCode(req: Request, res: Response): Promise<any> {
     await req.tg.connect()
