@@ -318,7 +318,6 @@ export class Auth {
         accessToken: auth.accessToken,
       })
   }
-}
 
   /**
    * Sign in process with QR Code https://core.telegram.org/api/qr-login
