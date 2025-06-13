@@ -45,9 +45,9 @@ export class Auth {
     )) as Api.auth.SentCode
 
     const { phoneCodeHash, timeout } = result
-
     const session = req.tg.session.save()
     const accessToken = sign({ session }, API_JWT_SECRET, { expiresIn: '3h' })
+
     return res
       .cookie('authorization', `Bearer ${accessToken}`)
       .send({ phoneCodeHash, timeout, accessToken })
@@ -74,6 +74,7 @@ export class Auth {
     const { phoneCodeHash: newPhoneCodeHash, timeout } = result
     const session = req.tg.session.save()
     const accessToken = sign({ session }, API_JWT_SECRET, { expiresIn: '3h' })
+
     return res
       .cookie('authorization', `Bearer ${accessToken}`)
       .send({ phoneCodeHash: newPhoneCodeHash, timeout, accessToken })
@@ -81,8 +82,8 @@ export class Auth {
 
   @Endpoint.POST({ middlewares: [TGSessionAuth] })
   public async login(req: Request, res: Response): Promise<any> {
-    const { phoneNumber, phoneCode, phoneCodeHash, password, invitationCode } =
-      req.body
+    const { phoneNumber, phoneCode, phoneCodeHash, password, invitationCode } = req.body
+
     if ((!phoneNumber || !phoneCode || !phoneCodeHash) && !password) {
       if (!password) {
         throw { status: 400, body: { error: 'Password is required' } }
@@ -130,7 +131,6 @@ export class Auth {
       if (config?.disable_signup) {
         throw { status: 403, body: { error: 'Signup is disabled' } }
       }
-
       if (config?.invitation_code && config?.invitation_code !== invitationCode) {
         throw { status: 403, body: { error: 'Invalid invitation code' } }
       }
@@ -278,38 +278,43 @@ export class Auth {
       }
     }
   }
-}
 
-/**
+  /**
    * Initialize export login token to be a param for URL tg://login?token={{token}}
-   * @param req
-   * @param res
-   * @returns
    */
-
   @Endpoint.GET({ middlewares: [TGClient] })
-public async qrCode(req: Request, res: Response): Promise<any> {
-  await req.tg.connect()
-  const data = await req.tg.invoke(new Api.auth.ExportLoginToken({
-    ...TG_CREDS,
-    exceptIds: [],
-  }))
-
-  return res.send(data)
-}
+  public async qrCode(req: Request, res: Response): Promise<any> {
+    await req.tg.connect()
+    const data = await req.tg.invoke(
+      new Api.auth.ExportLoginToken({
+        ...TG_CREDS,
+        exceptIds: [],
+      })
+    )
 
     const session = req.tg.session.save()
     const auth = {
       session,
       accessToken: sign({ session }, API_JWT_SECRET, { expiresIn: '15h' }),
       refreshToken: sign({ session }, API_JWT_SECRET, { expiresIn: '100y' }),
-      expiredAfter: Date.now() + COOKIE_AGE
+      expiredAfter: Date.now() + COOKIE_AGE,
     }
+
     return res
-      .cookie('authorization', `Bearer ${auth.accessToken}`, { maxAge: COOKIE_AGE, expires: new Date(auth.expiredAfter) })
-      .cookie('refreshToken', auth.refreshToken, { maxAge: 3.154e+10, expires: new Date(Date.now() + 3.154e+10) })
-      .send({ loginToken: Buffer.from(data['token'], 'utf8').toString('base64url'), accessToken: auth.accessToken })
+      .cookie('authorization', `Bearer ${auth.accessToken}`, {
+        maxAge: COOKIE_AGE,
+        expires: new Date(auth.expiredAfter),
+      })
+      .cookie('refreshToken', auth.refreshToken, {
+        maxAge: 3.154e10,
+        expires: new Date(Date.now() + 3.154e10),
+      })
+      .send({
+        loginToken: Buffer.from(data['token'], 'utf8').toString('base64url'),
+        accessToken: auth.accessToken,
+      })
   }
+}
 
   /**
    * Sign in process with QR Code https://core.telegram.org/api/qr-login
