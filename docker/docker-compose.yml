@@ -17,23 +17,12 @@ services:
         REACT_APP_TG_API_ID: ${TG_API_ID}
         REACT_APP_TG_API_HASH: ${TG_API_HASH}
     environment:
-      DATABASE_URL: postgres://postgres:${DB_PASSWORD}@db:5432/teledrive?connect_timeout=60&pool_timeout=60&socket_timeout=60
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URI: redis://redis:6379
     env_file:
       - .env
     depends_on:
-      - db
       - redis
-
-  db:
-    image: postgres:13
-    restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: teledrive
-    volumes:
-      - ./data:/var/lib/postgresql/data
 
   redis:
     image: redis:6
