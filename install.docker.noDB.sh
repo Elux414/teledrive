@@ -30,7 +30,6 @@ then
   echo "TG_API_HASH=$TG_API_HASH" >> docker/.env
   echo "ADMIN_USERNAME=$ADMIN_USERNAME" >> docker/.env
   echo "DATABASE_URL=$DATABASE_URL" >> docker/.env
-  echo "DB_PASSWORD=$DB_PASSWORD" >> docker/.env
 
   cd docker
   docker compose build teledrive
