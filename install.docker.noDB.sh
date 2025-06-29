@@ -20,7 +20,6 @@ then
   echo
   read -p "Enter your ADMIN_USERNAME: " ADMIN_USERNAME
   read -p "Enter your DATABASE_URL: " DATABASE_URL
-  read -p "Enter your DB_PASSWORD: " DB_PASSWORD
   read -p "Enter your PORT: " PORT
   PORT="${PORT:=4000}"
 
