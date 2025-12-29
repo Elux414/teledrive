@@ -11,7 +11,7 @@ if [ ! -f docker/.env ]
 then
   echo "Generating .env file..."
 
-  ENV="develop"
+  ENV="production"
 
   echo "Preparing your keys from https://my.telegram.org/"
   read -p "Enter your TG_API_ID: " TG_API_ID
@@ -29,6 +29,7 @@ then
   echo "TG_API_ID=$TG_API_ID" >> docker/.env
   echo "TG_API_HASH=$TG_API_HASH" >> docker/.env
   echo "ADMIN_USERNAME=$ADMIN_USERNAME" >> docker/.env
+  export "DATABASE_URL=$DATABASE_URL"
   echo "DATABASE_URL=$DATABASE_URL" >> docker/.env
   echo "REDIS_URL=$REDIS_URL" >> docker/.env
 
