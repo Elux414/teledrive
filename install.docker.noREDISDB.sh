@@ -21,7 +21,7 @@ then
   read -p "Enter your ADMIN_USERNAME: " ADMIN_USERNAME
   read -p "Enter your DATABASE_URL: " DATABASE_URL
   read -p "Enter your PORT: " PORT
-  read -p "Enter your REDIS_URL: " REDIS_URL
+  read -p "Enter your REDIS_URI: " REDIS_URI
   PORT="${PORT:=4000}"
 
   echo "ENV=$ENV" > docker/.env
@@ -31,7 +31,7 @@ then
   echo "ADMIN_USERNAME=$ADMIN_USERNAME" >> docker/.env
   export "DATABASE_URL=$DATABASE_URL"
   echo "DATABASE_URL=$DATABASE_URL" >> docker/.env
-  echo "REDIS_URL=$REDIS_URL" >> docker/.env
+  echo "REDIS_URI=$REDIS_URI" >> docker/.env
 
   cd docker
   docker compose build teledrive
